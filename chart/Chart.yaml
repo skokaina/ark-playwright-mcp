@@ -2,8 +2,8 @@ apiVersion: v2
 name: ark-playwright-mcp
 description: Playwright browser automation for ARK agents via Microsoft's MCP server
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.1.1
+appVersion: "0.1.1"
 keywords:
   - ark
   - mcp

@@ -1,6 +1,6 @@
 {
   "name": "ark-playwright-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Playwright browser automation for ARK agents via Microsoft's MCP server",
   "author": "ark-playwright-mcp contributors",
   "license": "Apache-2.0",
