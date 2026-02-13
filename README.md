@@ -1,30 +1,53 @@
 # ark-playwright-mcp
 
-Playwright browser automation for ARK agents via Microsoft's MCP server.
+Playwright browser automation for [ARK](https://mckinsey.github.io/agents-at-scale-ark/) (Agentic Runtime for Kubernetes) via Microsoft's MCP server.
+
+## What is this?
+
+This package deploys Microsoft's production-ready [@playwright/mcp](https://github.com/microsoft/playwright) server to Kubernetes, enabling ARK agents to:
+- Navigate web pages and interact with elements
+- Take screenshots and generate PDFs
+- Fill forms and test workflows
+- Capture network requests and console logs
+- Execute JavaScript in page context
+
+**29 built-in tools** including `browser-navigate`, `browser-click`, `browser-screenshot`, `browser-snapshot`, `browser-console-messages`, and more.
 
 ## Quick Install
 
-**OrbStack/Docker Desktop:**
+**Prerequisites:** Kubernetes cluster with [ARK installed](https://mckinsey.github.io/agents-at-scale-ark/), kubectl, Helm 3.x
+
+### One-Line Install
+
 ```bash
-make orbstack-setup        # Verify Kubernetes
-make quick-install-local   # Build and deploy
+curl -fsSL https://raw.githubusercontent.com/skokaina/ark-playwright-mcp/main/scripts/install.sh | bash
 ```
 
-**k3d:**
-```bash
-make e2e-setup      # Create cluster
-make quick-install  # Build and deploy
-```
+**What gets installed:**
+- ✅ Playwright MCP server (Chromium browser)
+- ✅ MCPServer CRD resource (auto-discovered by ARK)
+- ✅ 29 browser automation tools
+- ✅ 5Gi persistent storage for artifacts
 
-**Production:**
+### Manual Install
+
 ```bash
+# Latest version
 helm install ark-playwright oci://ghcr.io/skokaina/charts/ark-playwright-mcp
+
+# Specific version
+helm install ark-playwright oci://ghcr.io/skokaina/charts/ark-playwright-mcp --version 0.1.0
+
+# Local development (OrbStack/Docker Desktop)
+git clone https://github.com/skokaina/ark-playwright-mcp.git
+cd ark-playwright-mcp
+make quick-install-local
 ```
 
-## Verify Installation
+### Verify Installation
 
 ```bash
-# Check deployment
+# Check MCPServer
 kubectl get mcpserver playwright-browser
 # Should show: AVAILABLE=True, TOOLS=29
 
@@ -36,17 +59,17 @@ kubectl get pods -l app=ark-playwright-mcp
 kubectl logs -l app=ark-playwright-mcp
 ```
 
+---
+
 ## Browser Modes
 
 ### Cluster Browser (Default)
-
 Browser runs inside Kubernetes pod (headless Chromium).
 
-**Pros**: Isolated, consistent, production-ready
-**Cons**: Can't see what the browser is doing
+**Pros:** Isolated, consistent, production-ready
+**Cons:** Can't see what the browser is doing
 
 ### Local Browser (Debug Mode)
-
 Connect to your local Chrome browser to see agent actions in real-time.
 
 **1. Start Chrome with remote debugging:**
@@ -59,19 +82,11 @@ Connect to your local Chrome browser to see agent actions in real-time.
 # Linux
 google-chrome --remote-debugging-port=9222 \
   --user-data-dir=/tmp/chrome-debug
-
-# Windows
-"C:\Program Files\Google\Chrome\Application\chrome.exe" \
-  --remote-debugging-port=9222 \
-  --user-data-dir=C:\temp\chrome-debug
 ```
 
 **2. Deploy with CDP endpoint:**
 ```bash
 helm upgrade ark-playwright chart/ \
-  --set app.image.repository=ark-playwright-mcp \
-  --set app.image.tag=latest \
-  --set app.image.pullPolicy=IfNotPresent \
   --set app.playwright.cdpEndpoint=http://host.docker.internal:9222 \
   --set app.playwright.headless=false
 ```
@@ -82,11 +97,7 @@ kubectl apply -f samples/ark-resources/query-screenshot.yaml
 # Watch your local Chrome navigate to example.com!
 ```
 
-**Verify CDP connection:**
-```bash
-# Check logs for CDP connection
-kubectl logs -l app=ark-playwright-mcp | grep -i cdp
-```
+---
 
 ## Access Artifacts
 
@@ -104,11 +115,6 @@ kubectl cp $POD:/app/artifacts/screenshot.png ./screenshot.png
 open screenshot.png  # macOS
 ```
 
-**Download all artifacts:**
-```bash
-kubectl cp $POD:/app/artifacts ./artifacts
-```
-
 **Enable video recording:**
 ```bash
 helm upgrade ark-playwright chart/ \
@@ -122,6 +128,8 @@ helm upgrade ark-playwright chart/ \
   --set app.playwright.saveTrace=true
 # View traces at https://trace.playwright.dev/
 ```
+
+---
 
 ## Test with ARK Agent
 
@@ -139,8 +147,41 @@ kubectl apply -f samples/ark-resources/query-screenshot.yaml
 kubectl get query test-screenshot -w
 
 # View results (when completed)
-kubectl get query test-screenshot -o jsonpath='{.status.output}'
+kubectl get query test-screenshot -o jsonpath='{.status.response.content}'
 ```
+
+---
+
+## Available Tools (29)
+
+**Navigation:** navigate, navigate-back, close, resize, tabs
+**Interaction:** click, type, fill-form, select-option, drag, hover, press-key, file-upload
+**Mouse:** mouse-click-xy, mouse-move-xy, mouse-drag-xy, mouse-down, mouse-up, mouse-wheel
+**Inspection:** snapshot, take-screenshot, console-messages, network-requests
+**Advanced:** evaluate, run-code, handle-dialog, pdf-save, install, wait-for
+
+Full docs: [Microsoft Playwright MCP](https://github.com/microsoft/playwright)
+
+---
+
+## Quick Commands
+
+```bash
+# Local development (OrbStack/Docker Desktop)
+make quick-install-local   # Build and deploy
+make status                # Check deployment
+make logs                  # View logs
+make clean-local           # Remove deployment
+
+# Verify cluster setup
+make orbstack-setup        # OrbStack verification
+
+# k3d cluster (for testing)
+make e2e-setup            # Create k3d cluster
+make quick-install        # Build and deploy to k3d
+```
+
+---
 
 ## Configuration
 
@@ -165,69 +206,24 @@ app:
       memory: 2Gi
 ```
 
-## Available Tools (29)
+---
 
-**Navigation**: navigate, navigate-back, close, resize, tabs
-**Interaction**: click, type, fill-form, select-option, drag, hover, press-key, file-upload
-**Mouse**: mouse-click-xy, mouse-move-xy, mouse-drag-xy, mouse-down, mouse-up, mouse-wheel
-**Inspection**: snapshot, take-screenshot, console-messages, network-requests
-**Advanced**: evaluate, run-code, handle-dialog, pdf-save, install, wait-for
+## Further Reading
 
-Full docs: [Microsoft Playwright MCP](https://github.com/microsoft/playwright)
+### User Guides
+- **[Architecture](docs/ARCHITECTURE.md)** - System design and integration
+- **[Configuration](docs/CONFIGURATION.md)** - All Helm values and options
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
-## Troubleshooting
+### Developer Guides
+- **[Development](docs/DEVELOPMENT.md)** - Local development and testing
 
-**Pod not starting:**
-```bash
-kubectl describe pod -l app=ark-playwright-mcp
-kubectl logs -l app=ark-playwright-mcp
-```
+### Reference
+- [Microsoft Playwright MCP](https://github.com/microsoft/playwright) - Upstream project
+- [ARK Documentation](https://mckinsey.github.io/agents-at-scale-ark/) - ARK platform docs
+- [Playwright Docs](https://playwright.dev/) - Playwright browser automation
 
-**MCPServer not available:**
-```bash
-kubectl get mcpserver playwright-browser -o yaml
-# Check status.conditions for errors
-```
-
-**Connection refused:**
-```bash
-# Test endpoint
-kubectl run test --rm -it --image=curlimages/curl --restart=Never -- \
-  curl http://ark-playwright-mcp:8931/mcp
-```
-
-**CDP not connecting (local browser):**
-```bash
-# Verify Chrome is running with debugging
-curl http://localhost:9222/json/version
-
-# Check OrbStack can reach host
-kubectl run test --rm -it --image=curlimages/curl --restart=Never -- \
-  curl http://host.docker.internal:9222/json/version
-```
-
-## Development
-
-```bash
-# Fast iteration
-make quick-install-local
-
-# View status
-make status
-
-# View logs
-make logs
-
-# Clean up
-make clean-local
-```
-
-## Documentation
-
-- [Architecture](docs/ARCHITECTURE.md) - System design
-- [Configuration](docs/CONFIGURATION.md) - All options
-- [Development](docs/DEVELOPMENT.md) - Local development
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues
+---
 
 ## License
 

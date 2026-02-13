@@ -40,17 +40,23 @@ echo -e "${GREEN}✓ Prerequisites met${NC}\n"
 # Get current context
 CONTEXT=$(kubectl config current-context)
 echo -e "Current Kubernetes context: ${YELLOW}${CONTEXT}${NC}"
-read -p "Continue with this context? (y/n) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Installation cancelled."
-    exit 1
-fi
 
-# Prompt for namespace
-read -r -p "Enter namespace (default: ${NAMESPACE}): " INPUT_NAMESPACE
-if [ -n "$INPUT_NAMESPACE" ]; then
-    NAMESPACE=$INPUT_NAMESPACE
+# Only prompt if running interactively
+if [ -t 0 ]; then
+    read -p "Continue with this context? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Installation cancelled."
+        exit 1
+    fi
+
+    # Prompt for namespace
+    read -r -p "Enter namespace (default: ${NAMESPACE}): " INPUT_NAMESPACE
+    if [ -n "$INPUT_NAMESPACE" ]; then
+        NAMESPACE=$INPUT_NAMESPACE
+    fi
+else
+    echo "Running in non-interactive mode, using defaults..."
 fi
 
 # Create namespace if it doesn't exist
