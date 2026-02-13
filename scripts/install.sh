@@ -48,7 +48,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 # Prompt for namespace
-read -p "Enter namespace (default: ${NAMESPACE}): " INPUT_NAMESPACE
+read -r -p "Enter namespace (default: ${NAMESPACE}): " INPUT_NAMESPACE
 if [ -n "$INPUT_NAMESPACE" ]; then
     NAMESPACE=$INPUT_NAMESPACE
 fi
