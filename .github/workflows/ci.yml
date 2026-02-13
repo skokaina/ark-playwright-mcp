@@ -80,8 +80,8 @@ jobs:
           # Wait for startup
           sleep 10
 
-          # Test health endpoint
-          curl -f http://localhost:8931/health || exit 1
+          # Test TCP connection (no /health endpoint exists)
+          timeout 5 bash -c 'cat < /dev/null > /dev/tcp/localhost/8931' || exit 1
 
           # Stop container
           docker stop playwright-test
@@ -95,6 +95,12 @@ jobs:
             --agents 1
             --no-lb
             --k3s-arg "--disable=traefik,servicelb,metrics-server@server:*"
+
+      - name: Configure kubectl
+        run: |
+          kubectl config use-context k3d-test-cluster
+          kubectl cluster-info
+          kubectl get nodes
 
       - name: Load image to k3d
         run: |
