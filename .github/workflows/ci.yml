@@ -20,12 +20,11 @@ jobs:
       - name: Validate YAML
         uses: ibiqlik/action-yamllint@v3
         with:
-          file_or_dir: chart/
-          config_data: |
-            extends: default
-            rules:
-              line-length: disable
-              comments-indentation: disable
+          config_file: .yamllint
+          file_or_dir: |
+            chart/values.yaml
+            chart/values-demo.yaml
+            chart/Chart.yaml
 
       - name: Shellcheck
         uses: ludeeus/action-shellcheck@master
