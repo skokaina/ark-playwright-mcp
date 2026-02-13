@@ -1,0 +1,141 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+      containers:
+      - name: playwright-mcp
+        image: "{{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}"
+        imagePullPolicy: {{ .Values.app.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.app.port }}
+          name: http
+          protocol: TCP
+
+        # Convert Helm values to CLI arguments
+        command: ["npx"]
+        args:
+        - "@playwright/mcp@latest"
+        {{- if .Values.app.playwright.headless }}
+        - "--headless"
+        {{- end }}
+        {{- if .Values.app.playwright.cdpEndpoint }}
+        - "--cdp-endpoint"
+        - "{{ .Values.app.playwright.cdpEndpoint }}"
+        {{- else if .Values.app.playwright.browser }}
+        - "--browser"
+        - "{{ .Values.app.playwright.browser }}"
+        {{- end }}
+        {{- if .Values.app.playwright.noSandbox }}
+        - "--no-sandbox"
+        {{- end }}
+        {{- if .Values.app.port }}
+        - "--port"
+        - "{{ .Values.app.port }}"
+        {{- end }}
+        - "--host"
+        - "0.0.0.0"
+        - "--allowed-hosts"
+        - "*"
+        {{- if .Values.app.playwright.actionTimeout }}
+        - "--timeout-action"
+        - "{{ .Values.app.playwright.actionTimeout }}"
+        {{- end }}
+        {{- if .Values.app.playwright.navigationTimeout }}
+        - "--timeout-navigation"
+        - "{{ .Values.app.playwright.navigationTimeout }}"
+        {{- end }}
+        {{- if .Values.app.playwright.consoleLevel }}
+        - "--console-level"
+        - "{{ .Values.app.playwright.consoleLevel }}"
+        {{- end }}
+        {{- if .Values.app.playwright.outputDir }}
+        - "--output-dir"
+        - "{{ .Values.app.playwright.outputDir }}"
+        {{- end }}
+        {{- if .Values.app.playwright.snapshotMode }}
+        - "--snapshot-mode"
+        - "{{ .Values.app.playwright.snapshotMode }}"
+        {{- end }}
+        {{- if .Values.app.playwright.saveTrace }}
+        - "--save-trace"
+        {{- end }}
+        {{- if .Values.app.playwright.saveVideo }}
+        - "--save-video"
+        - "{{ .Values.app.playwright.saveVideo }}"
+        {{- end }}
+        {{- $caps := list }}
+        {{- if .Values.app.playwright.capabilities.vision }}
+        {{- $caps = append $caps "vision" }}
+        {{- end }}
+        {{- if .Values.app.playwright.capabilities.pdf }}
+        {{- $caps = append $caps "pdf" }}
+        {{- end }}
+        {{- if .Values.app.playwright.capabilities.devtools }}
+        {{- $caps = append $caps "devtools" }}
+        {{- end }}
+        {{- if $caps }}
+        - "--caps"
+        - "{{ join "," $caps }}"
+        {{- end }}
+        {{- range .Values.app.playwright.allowedOrigins }}
+        - "--allowed-origins"
+        - "{{ . }}"
+        {{- end }}
+        {{- range .Values.app.playwright.blockedOrigins }}
+        - "--blocked-origins"
+        - "{{ . }}"
+        {{- end }}
+
+        resources:
+          {{- toYaml .Values.app.resources | nindent 10 }}
+
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          capabilities:
+            {{- toYaml .Values.securityContext.capabilities | nindent 12 }}
+
+        volumeMounts:
+        {{- if .Values.storage.enabled }}
+        - name: artifacts
+          mountPath: {{ .Values.storage.mountPath }}
+        {{- end }}
+
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.app.port }}
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.app.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+      volumes:
+      {{- if .Values.storage.enabled }}
+      - name: artifacts
+        persistentVolumeClaim:
+          claimName: {{ .Values.app.name }}-artifacts
+      {{- end }}

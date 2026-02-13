@@ -1,0 +1,45 @@
+name: Helm Chart
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    name: Package and Publish Helm Chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.12.0'
+
+      - name: Lint Helm chart
+        run: helm lint chart/
+
+      - name: Package Helm chart
+        run: |
+          helm package chart/ --destination .
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+
+      - name: Push Helm chart
+        run: |
+          VERSION=$(grep '^version:' chart/Chart.yaml | awk '{print $2}')
+          helm push ark-playwright-mcp-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+
+      - name: Upload chart as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-chart
+          path: '*.tgz'

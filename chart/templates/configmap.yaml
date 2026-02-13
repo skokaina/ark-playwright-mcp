@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.app.name }}-config
+  labels:
+    app: {{ .Values.app.name }}
+data:
+  # Playwright configuration
+  PLAYWRIGHT_HEADLESS: "{{ .Values.app.playwright.headless }}"
+  PLAYWRIGHT_BROWSER: "{{ .Values.app.playwright.browser }}"
+  PLAYWRIGHT_ACTION_TIMEOUT: "{{ .Values.app.playwright.actionTimeout }}"
+  PLAYWRIGHT_NAVIGATION_TIMEOUT: "{{ .Values.app.playwright.navigationTimeout }}"
+  PLAYWRIGHT_CONSOLE_LEVEL: "{{ .Values.app.playwright.consoleLevel }}"
+  PLAYWRIGHT_OUTPUT_DIR: "{{ .Values.app.playwright.outputDir }}"
+  PLAYWRIGHT_SNAPSHOT_MODE: "{{ .Values.app.playwright.snapshotMode }}"
+
+  # Server configuration
+  MCP_PORT: "{{ .Values.app.port }}"
+  MCP_HOST: "0.0.0.0"

@@ -1,0 +1,46 @@
+{{- if .Values.mcp.enabled }}
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: MCPServer
+metadata:
+  name: playwright-browser
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  address:
+    valueFrom:
+      serviceRef:
+        name: {{ .Values.app.name }}
+        namespace: {{ .Release.Namespace }}
+        port: "http"
+        path: "/mcp"
+  transport: http                  # HTTP transport (not SSE)
+  timeout: {{ .Values.mcp.timeout }}
+  description: |
+    Browser automation via Microsoft Playwright MCP.
+
+    Capabilities:
+    - Navigate web pages and interact with elements
+    - Take screenshots and generate PDFs
+    - Fill forms and test workflows
+    - Capture network requests and console logs
+    - Accessibility tree snapshots (preferred over vision)
+
+    Available Tools:
+    - Navigation: browser_navigate, browser_go_back, browser_resize, browser_close, browser_tabs
+    - Interaction: browser_click, browser_type, browser_fill, browser_select_option, browser_drag_and_drop, browser_hover, browser_press_key, browser_upload_file
+    - Inspection: browser_snapshot, browser_screenshot, browser_network_requests, browser_console_messages
+    - Advanced: browser_evaluate, browser_handle_dialog, browser_run_code
+
+    Enabled Capabilities:
+    {{- if .Values.app.playwright.capabilities.vision }}
+    - Vision: Coordinate-based interaction (pixel-perfect clicks)
+    {{- end }}
+    {{- if .Values.app.playwright.capabilities.pdf }}
+    - PDF: Generate PDF documents from pages
+    {{- end }}
+    {{- if .Values.app.playwright.capabilities.testing }}
+    - Testing: Assertions and verifications
+    {{- end }}
+
+    For complete tool documentation, see: https://github.com/skokaina/ark-playwright-mcp/blob/main/docs/TOOLS_REFERENCE.md
+{{- end }}

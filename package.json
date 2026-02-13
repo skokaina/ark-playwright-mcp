@@ -1,0 +1,22 @@
+{
+  "name": "ark-playwright-mcp",
+  "version": "0.1.0",
+  "description": "Playwright browser automation for ARK agents via Microsoft's MCP server",
+  "author": "ark-playwright-mcp contributors",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skokaina/ark-playwright-mcp.git"
+  },
+  "keywords": [
+    "ark",
+    "mcp",
+    "playwright",
+    "browser-automation",
+    "kubernetes",
+    "helm"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

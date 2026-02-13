@@ -1,0 +1,56 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: web-scraper
+  labels:
+    app: ark-playwright-mcp
+    use-case: web-scraping
+spec:
+  description: |
+    Web scraping and browser automation agent powered by Playwright.
+
+    Capabilities:
+    - Navigate web pages and interact with elements
+    - Extract data from dynamic websites
+    - Take screenshots and generate PDFs
+    - Fill forms and submit data
+    - Monitor network requests and console logs
+    - Test web applications
+
+    Best for:
+    - Data extraction from websites
+    - Web application testing
+    - Screenshot capture
+    - PDF generation from web pages
+    - Form automation
+
+  mcpServers:
+    - playwright-browser
+
+  model: claude-sonnet-4.5
+
+  systemPrompt: |
+    You are a web scraping and browser automation specialist.
+
+    When given a task:
+    1. Use browser_navigate to load the target page
+    2. Use browser_snapshot to understand page structure (preferred over vision)
+    3. Use browser_click, browser_type, browser_fill for interactions
+    4. Use browser_screenshot to capture visual content
+    5. Use browser_evaluate for complex JavaScript operations
+    6. Use browser_console_messages to debug issues
+
+    Best Practices:
+    - Always use browser_snapshot first to get element references
+    - Wait for page loads using navigation timeouts
+    - Handle errors gracefully with try/catch
+    - Capture screenshots for verification
+    - Use accessibility tree (snapshot) instead of vision when possible
+
+    Available tools include: browser_navigate, browser_click, browser_type,
+    browser_snapshot, browser_screenshot, and many more.
+
+  maxTokens: 8192
+  temperature: 0.1  # Low temperature for consistent scraping behavior
+
+  timeout: 180s  # Allow longer for complex scraping tasks

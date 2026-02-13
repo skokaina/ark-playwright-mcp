@@ -1,0 +1,67 @@
+app:
+  name: ark-playwright-mcp
+  image:
+    repository: ghcr.io/skokaina/ark-playwright-mcp
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  port: 8931
+
+  # Maps to @playwright/mcp CLI arguments
+  playwright:
+    headless: true
+    browser: chromium              # chromium, firefox, webkit, chrome, edge
+    cdpEndpoint: ""                # CDP endpoint URL (e.g. http://host.docker.internal:9222)
+    noSandbox: true                # Required in containers
+    actionTimeout: 5000            # 5s default for clicks, types
+    navigationTimeout: 60000       # 60s for page loads
+    consoleLevel: info             # error, warning, info, debug
+    outputDir: /app/artifacts
+    saveTrace: false               # Enable for debugging
+    saveVideo: ""                  # e.g., "800x600" to enable
+
+    # Network security
+    allowedOrigins: []             # Empty = allow all
+    blockedOrigins: []
+
+    # Performance
+    snapshotMode: incremental      # incremental, full, none
+
+    # Capabilities (enabled by default for ARK)
+    capabilities:
+      vision: true                 # Coordinate-based clicks (pixel-perfect interaction)
+      pdf: true                    # PDF generation
+      devtools: false              # DevTools integration (optional)
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+mcp:
+  enabled: true
+  timeout: 90s                     # Longer timeout for browser ops
+
+storage:
+  enabled: true
+  size: 5Gi
+  mountPath: /app/artifacts
+  storageClass: ""
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8931
+  annotations: {}

@@ -1,0 +1,22 @@
+app:
+  playwright:
+    headless: false                # Headed mode for debugging
+    consoleLevel: debug
+    saveTrace: true
+    saveVideo: "1280x720"
+    capabilities:
+      vision: true
+      pdf: true
+      testing: true
+
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+
+storage:
+  enabled: true
+  size: 10Gi

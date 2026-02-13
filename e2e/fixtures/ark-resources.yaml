@@ -1,0 +1,45 @@
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: test-web-scraper
+  labels:
+    test: e2e
+spec:
+  description: "Test web scraping agent for E2E tests"
+  mcpServers:
+    - playwright-browser
+  model: claude-sonnet-4.5
+  systemPrompt: |
+    You are a test web scraping agent.
+    Use Playwright tools to navigate and interact with web pages.
+  maxTokens: 8192
+  temperature: 0.0
+  timeout: 120s
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: test-navigation
+  labels:
+    test: e2e
+spec:
+  agentRef:
+    name: test-web-scraper
+  query: "Navigate to https://example.com and tell me the page title"
+  timeout: 120s
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: test-screenshot
+  labels:
+    test: e2e
+spec:
+  agentRef:
+    name: test-web-scraper
+  query: |
+    Navigate to https://example.com
+    Take a screenshot
+    Tell me the dimensions of the screenshot
+  timeout: 120s

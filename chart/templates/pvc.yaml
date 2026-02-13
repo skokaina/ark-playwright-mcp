@@ -1,0 +1,17 @@
+{{- if .Values.storage.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.app.name }}-artifacts
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.storage.storageClass }}
+  storageClassName: {{ .Values.storage.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+{{- end }}

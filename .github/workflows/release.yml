@@ -1,0 +1,218 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Get current version
+        id: current_version
+        run: |
+          CURRENT_VERSION=$(grep '^version:' chart/Chart.yaml | awk '{print $2}')
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Calculate new version
+        id: version
+        run: |
+          CURRENT="${{ steps.current_version.outputs.current }}"
+          IFS='.' read -r major minor patch <<< "$CURRENT"
+
+          case "${{ github.event.inputs.version_bump }}" in
+            major)
+              NEW_VERSION="$((major + 1)).0.0"
+              ;;
+            minor)
+              NEW_VERSION="${major}.$((minor + 1)).0"
+              ;;
+            patch)
+              NEW_VERSION="${major}.${minor}.$((patch + 1))"
+              ;;
+          esac
+
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Update package.json
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" package.json
+          cat package.json
+
+      - name: Update Chart.yaml
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^version: .*/version: $VERSION/" chart/Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"$VERSION\"/" chart/Chart.yaml
+          cat chart/Chart.yaml
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Create new changelog entry
+          cat > /tmp/new_changelog.md <<EOF
+  ## [$VERSION] - $DATE
+
+  ### Added
+  - Release $VERSION
+
+  EOF
+
+          # Insert after "## [Unreleased]" line
+          sed -i "/## \[Unreleased\]/r /tmp/new_changelog.md" CHANGELOG.md
+
+      - name: Commit version bump
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git add package.json chart/Chart.yaml CHANGELOG.md
+          git commit -m "chore: bump version to $VERSION"
+          git push
+
+      - name: Create Git tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          PREV_TAG=$(git describe --abbrev=0 --tags HEAD^ 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG="Initial release"
+          else
+            CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          fi
+
+          cat > /tmp/release_notes.md <<EOF
+  # Release v$VERSION
+
+  ## Changes
+
+  $CHANGELOG
+
+  ## Installation
+
+  \`\`\`bash
+  # Helm install
+  helm install ark-playwright oci://ghcr.io/skokaina/charts/ark-playwright-mcp --version $VERSION
+
+  # One-line install
+  curl -fsSL https://raw.githubusercontent.com/skokaina/ark-playwright-mcp/v$VERSION/scripts/install.sh | bash
+  \`\`\`
+
+  ## Documentation
+
+  - [Quick Start](https://github.com/skokaina/ark-playwright-mcp/blob/v$VERSION/docs/QUICK_START.md)
+  - [Configuration](https://github.com/skokaina/ark-playwright-mcp/blob/v$VERSION/docs/CONFIGURATION.md)
+  - [Tools Reference](https://github.com/skokaina/ark-playwright-mcp/blob/v$VERSION/docs/TOOLS_REFERENCE.md)
+  EOF
+
+          echo "notes_file=/tmp/release_notes.md" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body_path: ${{ steps.release_notes.outputs.notes_file }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    needs: release
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.version }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/ark-playwright-mcp:${{ needs.release.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/ark-playwright-mcp:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  helm:
+    name: Package and Push Helm Chart
+    runs-on: ubuntu-latest
+    needs: release
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.version }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Package Helm chart
+        run: |
+          helm package chart/ --destination .
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+
+      - name: Push Helm chart
+        run: |
+          VERSION="${{ needs.release.outputs.version }}"
+          helm push ark-playwright-mcp-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts

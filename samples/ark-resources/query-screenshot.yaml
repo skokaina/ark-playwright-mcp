@@ -1,0 +1,24 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: test-screenshot
+  labels:
+    app: ark-playwright-mcp
+    test: screenshot
+spec:
+  agentRef:
+    name: web-scraper
+
+  query: |
+    Please perform the following tasks:
+
+    1. Navigate to https://example.com
+    2. Wait for the page to load completely
+    3. Take a screenshot of the page
+    4. Get the page title from the accessibility snapshot
+    5. Check the console logs for any errors
+
+    Provide a summary of what you found, including the page title and
+    whether there were any console errors.
+
+  timeout: 120s

@@ -1,0 +1,19 @@
+apiVersion: v2
+name: ark-playwright-mcp
+description: Playwright browser automation for ARK agents via Microsoft's MCP server
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - ark
+  - mcp
+  - playwright
+  - browser-automation
+  - kubernetes
+home: https://github.com/skokaina/ark-playwright-mcp
+sources:
+  - https://github.com/skokaina/ark-playwright-mcp
+  - https://github.com/microsoft/playwright
+maintainers:
+  - name: ark-playwright-mcp contributors
+icon: https://playwright.dev/img/playwright-logo.svg
