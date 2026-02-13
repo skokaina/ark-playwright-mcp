@@ -129,14 +129,17 @@ helm upgrade ark-playwright chart/ \
 # Create agent
 kubectl apply -f samples/ark-resources/agent-web-scraper.yaml
 
+# Verify agent is available
+kubectl get agent web-scraper
+
 # Submit query
 kubectl apply -f samples/ark-resources/query-screenshot.yaml
 
 # Watch execution
 kubectl get query test-screenshot -w
 
-# View results
-kubectl get query test-screenshot -o jsonpath='{.status.response}'
+# View results (when completed)
+kubectl get query test-screenshot -o jsonpath='{.status.output}'
 ```
 
 ## Configuration

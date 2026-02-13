@@ -1,9 +1,11 @@
-# Use Microsoft's official Playwright MCP image
-# This includes all browsers (Chromium, Firefox, WebKit) and dependencies
+# Use Microsoft's official Playwright base image
 FROM mcr.microsoft.com/playwright:v1.49.1-noble
 
 # Install @playwright/mcp globally
 RUN npm install -g @playwright/mcp@latest
+
+# Install Playwright browsers (required for @playwright/mcp)
+RUN npx playwright install chromium --with-deps
 
 # Create artifacts directory
 RUN mkdir -p /app/artifacts && chmod 777 /app/artifacts
