@@ -80,15 +80,37 @@ jobs:
           docker stop playwright-test
           docker rm playwright-test
 
-      - name: Create kind cluster
-        uses: helm/kind-action@v1
-        with:
-          cluster_name: test-cluster
-          wait: 60s
-
-      - name: Load image to kind
+      - name: Install k3d
         run: |
-          kind load docker-image ark-playwright-mcp:test --name test-cluster
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      - name: Create k3d cluster
+        run: |
+          k3d cluster create test-cluster \
+            --agents 1 \
+            --wait \
+            --timeout 5m
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Load image to k3d
+        run: |
+          k3d image import ark-playwright-mcp:test -c test-cluster
+
+      - name: Install ARK CLI
+        run: |
+          npm install -g @agents-at-scale/ark@0.1.51 || npm install -g @agents-at-scale/ark
+          ark --version
+
+      - name: Install ARK to cluster
+        run: |
+          ark install --yes --wait-for-ready 5m --verbose
+          echo "✓ ARK installed successfully"
+          kubectl get pods -n ark-system
+          kubectl get svc -n ark-system
 
       - name: Install Helm chart
         run: |
