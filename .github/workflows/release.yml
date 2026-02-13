@@ -75,17 +75,11 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           DATE=$(date +%Y-%m-%d)
-
-          # Create new changelog entry
-          cat > /tmp/new_changelog.md <<EOF
-  ## [$VERSION] - $DATE
-
-  ### Added
-  - Release $VERSION
-
-  EOF
-
-          # Insert after "## [Unreleased]" line
+          echo "## [$VERSION] - $DATE" > /tmp/new_changelog.md
+          echo "" >> /tmp/new_changelog.md
+          echo "### Added" >> /tmp/new_changelog.md
+          echo "- Release $VERSION" >> /tmp/new_changelog.md
+          echo "" >> /tmp/new_changelog.md
           sed -i "/## \[Unreleased\]/r /tmp/new_changelog.md" CHANGELOG.md
 
       - name: Commit version bump
@@ -113,30 +107,29 @@ jobs:
             CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges)
           fi
 
-          cat > /tmp/release_notes.md <<EOF
-  # Release v$VERSION
-
-  ## Changes
-
-  $CHANGELOG
-
-  ## Installation
-
-  \`\`\`bash
-  # Helm install
-  helm install ark-playwright oci://ghcr.io/skokaina/charts/ark-playwright-mcp --version $VERSION
-
-  # One-line install
-  curl -fsSL https://raw.githubusercontent.com/skokaina/ark-playwright-mcp/v$VERSION/scripts/install.sh | bash
-  \`\`\`
-
-  ## Documentation
-
-  - [Quick Start](https://github.com/skokaina/ark-playwright-mcp/blob/v$VERSION/docs/QUICK_START.md)
-  - [Configuration](https://github.com/skokaina/ark-playwright-mcp/blob/v$VERSION/docs/CONFIGURATION.md)
-  - [Tools Reference](https://github.com/skokaina/ark-playwright-mcp/blob/v$VERSION/docs/TOOLS_REFERENCE.md)
-  EOF
-
+          {
+            echo "# Release v$VERSION"
+            echo ""
+            echo "## Changes"
+            echo ""
+            echo "$CHANGELOG"
+            echo ""
+            echo "## Installation"
+            echo ""
+            echo '```bash'
+            echo "# Helm install"
+            echo "helm install ark-playwright oci://ghcr.io/skokaina/charts/ark-playwright-mcp --version $VERSION"
+            echo ""
+            echo "# One-line install"
+            echo "curl -fsSL https://raw.githubusercontent.com/skokaina/ark-playwright-mcp/v$VERSION/scripts/install.sh | bash"
+            echo '```'
+            echo ""
+            echo "## Documentation"
+            echo ""
+            echo "- [Quick Start](https://github.com/skokaina/ark-playwright-mcp/blob/v$VERSION/docs/QUICK_START.md)"
+            echo "- [Configuration](https://github.com/skokaina/ark-playwright-mcp/blob/v$VERSION/docs/CONFIGURATION.md)"
+            echo "- [Tools Reference](https://github.com/skokaina/ark-playwright-mcp/blob/v$VERSION/docs/TOOLS_REFERENCE.md)"
+          } > /tmp/release_notes.md
           echo "notes_file=/tmp/release_notes.md" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
